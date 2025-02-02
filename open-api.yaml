@@ -1,0 +1,3325 @@
+openapi: 3.0.0
+servers:
+  - description: FastPix Video APIs
+    url: https://v1.fastpix.io
+info:
+  description: >- 
+    Media APIs provides a set of API endpoints that enable developers to manage video and audio content on the FastPix platform. These endpoints are designed for creating, retrieving, updating, and deleting media files, as well as handling metadata and playback settings. This functionality is crucial for any video-centric product or application that serves video on demand (VOD) or audio on demand (AOD) content, allowing developers to programmatically manage their media library.
+  
+
+    #### How media APIs work 
+    
+    
+    
+    These endpoints allow developers to automate the process of uploading media, managing playback permissions, and customizing the user experience. With the ability to create media from URLs, upload videos directly from devices, add audio or subtitle tracks, and manage playback IDs, developers can build scalable and flexible VOD solutions. The Media APIs ensure that content is easily accessible, customizable, and ready for distribution to users.
+    
+    #### Use case scenarios
+  
+
+    **Building a video-on-demand platform:** Developers can use these APIs to manage video libraries for streaming services, allowing users to watch content on demand. 
+    
+    
+    **Media management for e-learning platforms:** Instructors can upload lecture videos, update content metadata, and control playback settings for students using these endpoints. 
+    
+    
+    **Adding multiple language tracks to videos:** 
+      Developers can append additional audio or subtitle tracks to media for a global audience, providing a personalized viewing experience. 
+        
+  version: "1.0.0"
+  title: VIDEO ON DEMAND API
+  contact:
+    email: support@fastpix.io
+
+tags:
+  - name: on-demand
+    description: On-demand APIs
+paths:
+  /on-demand:
+    post:
+      security:
+        - BasicAuth: []
+      tags:
+        - Input video
+      summary: Create media from URL
+      description: |
+        This endpoint allows developers or users to create a new video or audio media in FastPix using a publicly accessible URL. FastPix will fetch the media from the provided URL, process it, and store it on the platform for use. 
+
+ 
+
+        #### Public URL requirement:
+        
+        
+          The provided URL must be publicly accessible and should point to a video stored in one of the following supported formats: .m4v, .ogv, .mpeg, .mov, .3gp, .f4v, .rm, .ts, .wtv, .avi, .mp4, .wmv, .webm, .mts, .vob, .mxf, asf, m2ts 
+        
+         
+        
+        #### Supported storage types:
+        
+        The URL can originate from various cloud storage services or content delivery networks (CDNs) such as: 
+        
+        
+        * **Amazon S3:** URLs from Amazon's Simple Storage Service. 
+        
+        * **Google Cloud Storage:** URLs from Google Cloud's storage solution. 
+        
+        * **Azure Blob Storage:** URLs from Microsoft's Azure storage. 
+
+        * **Public CDNs:** URLs from public content delivery networks that host video files. 
+        
+        Upon successful creation, the API returns an id that should be retained for future operations related to this media. 
+         
+        #### How it works
+         
+        
+        1. Send a POST request to the /on-demand endpoint with the media URL (typically a video or audio file) and optional media settings. 
+        
+        2. FastPix uploads the video from the provided URL to its storage. 
+        
+        3. Receive a response containing the unique id for the newly created media item. 
+        
+        4. Use the id in subsequent API calls, such as checking the status of the media with the **Get Media by ID** endpoint to determine when the media is ready for playback. 
+        
+        FastPix uses webhooks to tell your application about things that happen in the background, outside of the API regular request flow. For instance, once the media file is created (but not yet processed or encoded), we’ll shoot a POST message to the address you give us with the webhook event video.media.created. 
+ 
+
+        Once processing is done you can look for the events video.media.ready and video.media.failed to see the status of your new media file.
+        
+        #### Use case scenario
+         
+        
+        * **Use case:** A developer wants to integrate a user-generated content platform where users can upload links to their videos hosted on third-party platforms like AWS or Google Cloud Storage. This endpoint is used to create media directly from those URLs. 
+
+
+        * **Detailed example:** 
+        Say you’re building an online learning platform where instructors upload video URLs hosted on their private cloud servers. By providing the video URL to this endpoint, the platform processes and adds it to your media library, ready for playback. 
+      operationId: create-media
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMediaRequest'
+            example:
+                {
+                   "inputs": [
+                      {
+                         "type": "video",
+                         "url": "https://static.fastpix.io/sample.mp4"
+                      }
+                    ],
+                       "metadata": {
+                          "key1": "value1"
+                       },
+                       "accessPolicy": "public",
+                       "maxResolution": "1080p"
+                    }
+        description: Request body for uploading a video media from URL
+      responses:
+        '201':
+          description: Media is created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    description: Displays the result of the request.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CreateMediaResponse'
+                example: 
+                  {
+                    "success": true,
+                    "data": {
+                      "id": "ffc4e8dd-544c-4ade-bdf1-ac31cb4e6b8f",
+                      "trial": false,
+                      "status": "Created",
+                      "createdAt": "2025-01-09T06:39:13.759544Z",
+                      "updatedAt": "2025-01-09T06:39:13.759588Z",
+                      "playbackIds": [
+                        {
+                          "id": "df5be71b-96dc-4edd-bdba-dcc43ab60309",
+                          "accessPolicy": "public",
+                          "accessRestrictions": {
+                            "domains": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            },
+                            "userAgents": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            }
+                          }
+                        }
+                      ],
+                      "metadata": {
+                        "key1": "value1"
+                      },
+                      "sourceAccess": false,
+                      "maxResolution": "1080p"
+                    }
+                  }
+        
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+    get:
+      security:
+        - BasicAuth: [] 
+      tags:
+        - Manage videos
+      summary: Get list of all media
+      description: |
+        This endpoint returns a list of all media files created from a URL or uploaded as file objects within your organization. Each media entry contains metadata such as the media ID, creation date, status, and type. It allows you to retrieve a comprehensive overview of your media assets, making it easier to manage and review them. 
+
+ 
+        #### How it works
+   
+        When called, the API provides a paginated response containing the media items in the organization's library. This is helpful for retrieving a large volume of media and managing content in bulk. 
+
+ 
+
+        #### Use case scenario 
+      
+        * **Use case:** A content manager at a video-on-demand platform wants to see all uploaded media to assess the quality and status of videos. 
+        
+         
+        
+        * **Detailed example:** 
+        You're managing a video platform and need to check all the uploaded media in your library to ensure no outdated or low-quality content is being served. Using this endpoint, you can retrieve a complete list of media, allowing you to filter, sort, or update items as needed. 
+      operationId: list-media
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+            minimum: 1
+            maximum: 50
+            example: 20
+          description: >-
+            Limit specifies the maximum number of items to display per page.
+        - in: query
+          name: offset
+          schema:
+            type: number
+            default: 1
+            example: 1
+          description: >- 
+            Offset determines the starting point for data retrieval within a paginated list.
+        - in: query
+          name: orderBy
+          schema:
+            type: string
+            example: "desc"
+            default: "desc" 
+            enum:         
+              - "asc"
+              - "desc"
+          description: >-
+            The values in the list can be arranged in two ways: DESC (Descending) or ASC (Ascending).
+      responses:
+        '200':
+          description: List of video media
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    description: Displays the result of the request.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Media'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                example:
+                  {
+                    "success": true,
+                    "data": [
+                              {
+                                "thumbnail": "https://images.fastpix.io/837f028b-dcaf-4c23-b368-3748641f74ac/thumbnail.png",
+                                "id": "cfeec1a3-6cbd-40df-a425-2ed7f8f72ced",
+                                "workspaceId": "6dc2b4e0-0615-42fd-a580-1f4aad932dfe",
+                                "metadata": {
+                                  "key1": "value1"
+                                },
+                                "maxResolution": "1080p",
+                                "sourceResolution": "1080p",
+                                "status": "Ready",
+                                "sourceAccess": false,
+                                "playbackIds": [
+                                  {
+                                    "id": "837f028b-dcaf-4c23-b368-3748641f74ac",
+                                    "accessPolicy": "public",
+                                    "accessRestrictions": {
+                                      "domains": {
+                                        "defaultPolicy": "allow",
+                                        "allow": [],
+                                        "deny": []
+                                      },
+                                      "userAgents": {
+                                        "defaultPolicy": "allow",
+                                        "allow": [],
+                                        "deny": []
+                                      }
+                                    }
+                                  }
+                                ],
+                                "tracks": [
+                                  {
+                                    "id": "f301a2a1-b40d-40fa-b419-4d0cd92a62f8",
+                                    "type": "video",
+                                    "width": 1920,
+                                    "height": 1080,
+                                    "frameRate": "30/1",
+                                    "status": "Ready",
+                                    "closedCaptions": false
+                                  }
+                                ],
+                                "isAudioOnly": false,
+                                "subtitleAvailable": true,
+                                "duration": "00:00:10",
+                                "frameRate": "30/1",
+                                "aspectRatio": "16:9",
+                                "createdAt": "2025-01-09T06:44:44.617138Z",
+                                "updatedAt": "2025-01-09T06:44:53.742648Z"
+                              }
+                    ],
+                    "pagination": {
+                      "totalRecords": 100,
+                      "currentOffset": 1,
+                      "offsetCount": 10
+                    }
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+                  
+        '422':
+          description: Get video media payload validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  
+  /on-demand/{mediaId}:
+    get:
+      security:
+        - BasicAuth: []
+      tags:
+        - Manage videos
+      summary: Get a media by ID
+      description: |
+        By calling this endpoint, you can retrieve detailed information about a specific media item, including its current status and a playbackId. This is particularly useful for retrieving specific media details when managing large content libraries. 
+
+ 
+
+        #### How it works 
+
+ 
+
+        1. Make a GET request to the **/on-demand/`<mediaId>`**  endpoint, replacing `<mediaId>` with the **uploadId** received during the upload process or the id obtained when creating media from a URL. 
+         
+        
+        2. Receive a response that includes details about the media, including: 
+        
+        * **status:** Indicates whether the media is still “preparing” or has transitioned to "ready."  
+        
+        * **playbackId:** The playbackId is a unique identifier that allows you to stream the media once it is ready. You can construct the stream URL dynamically using the playbackId in the following format: `https://stream.fastpix.io/<playbackId>.m3u8`
+        
+         
+        
+        **Please note:** Polling this API will let you know the status that whether the upload media has been moved to ready status, so that you can get started with streaming your media. 
+        
+        #### Use case scenario
+        
+        **Use case:** Suppose your platform provides users with an interface where they can manage their uploaded content. A user requests detailed information about a specific video to see if it has been fully processed and is available for playback. Using the media ID, you can fetch the information from FastPix and display it in the user’s dashboard. 
+        
+      operationId: get-media
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 4fa85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            The Media Id is assigned a universal unique identifier, which can contain a maximum of 255 characters.
+      responses:
+        '200':
+          description: Get a video media by id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    $ref: '#/components/schemas/Media'
+                example:
+                  {
+                    "success": true,
+                    "data": {
+                      "thumbnail": "https://images.fastpix.io/837f028b-dcaf-4c23-b368-3748641f74ac/thumbnail.png",
+                      "id": "cfeec1a3-6cbd-40df-a425-2ed7f8f72ced",
+                      "workspaceId": "6dc2b4e0-0615-42fd-a580-1f4aad932dfe",
+                      "metadata": {
+                        "key1": "value1"
+                      },
+                      "maxResolution": "1080p",
+                      "sourceResolution": "1080p",
+                      "status": "Ready",
+                      "sourceAccess": false,
+                      "playbackIds": [
+                        {
+                          "id": "837f028b-dcaf-4c23-b368-3748641f74ac",
+                          "accessPolicy": "public",
+                          "accessRestrictions": {
+                            "domains": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            },
+                            "userAgents": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            }
+                          }
+                        }
+                      ],
+                      "tracks": [
+                        {
+                          "id": "f301a2a1-b40d-40fa-b419-4d0cd92a62f8",
+                          "type": "video",
+                          "width": 1920,
+                          "height": 1080,
+                          "frameRate": "30/1",
+                          "closedCaptions": false
+                        }
+                      ],
+                      "isAudioOnly": false,
+                      "subtitleAvailable": true,
+                      "duration": "00:00:10",
+                      "frameRate": "30/1",
+                      "aspectRatio": "16:9",
+                      "createdAt": "2025-01-09T06:44:44.617138Z",
+                      "updatedAt": "2025-01-09T06:44:53.742648Z"
+                    }
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '404':
+          description: media workspace relation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+    patch:
+      security:
+        - BasicAuth: []
+      tags:
+        - Manage videos
+      summary: Update a media by ID
+      description: |
+        This endpoint allows you to update specific parameters of an existing media file. You can modify the key-value pairs of the metadata that were provided in the payload during the creation of media from a URL or when uploading the media as a file object. 
+
+ 
+        #### How it works
+        
+        1. Make a PATCH request to the **/on-demand/`<mediaId>`**  endpoint, replacing `<mediaId>` with the uploadId or the id of the media you want to update. 
+        
+        2. Include the updated parameters in the request body. 
+        
+        3. Receive a response containing the updated media data, confirming the changes made. 
+         
+        Once you have made the update request, you can also look for the webhook event **video.media.updated** to notify your system about update status. 
+        
+         
+        **Use case:** Imagine a scenario where a user uploads a video and later realizes they need to change the title, add a new description or tags. You can use this endpoint to update the media metadata without having to re-upload the entire video.
+      operationId: updated-media
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 4fa85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  example: {"key1" : "value1"}
+                  description: >-
+                    You can search for videos with specific key value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have maximum of 255 characters and upto 10 entries are allowed.
+              example:
+                {
+                  "metadata": {
+                    "user": "fastpix_admin"
+                  }
+                }
+      responses:
+        '200':
+          description: Media details updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    $ref: '#/components/schemas/Media'
+                example: 
+                  {
+                    "success": true,
+                    "data": {
+                      "thumbnail": "https://images.fastpix.io/837f028b-dcaf-4c23-b368-3748641f74ac/thumbnail.png",
+                      "id": "cfeec1a3-6cbd-40df-a425-2ed7f8f72ced",
+                      "workspaceId": "6dc2b4e0-0615-42fd-a580-1f4aad932dfe",
+                      "metadata": {
+                        "user": "fastpix_admin"
+                      },
+                      "maxResolution": "1080p",
+                      "sourceResolution": "1080p",
+                      "status": "Ready",
+                      "sourceAccess": false,
+                      "playbackIds": [
+                        {
+                          "id": "837f028b-dcaf-4c23-b368-3748641f74ac",
+                          "accessPolicy": "public",
+                          "accessRestrictions": {
+                            "domains": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            },
+                            "userAgents": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            }
+                          }
+                        }
+                      ],
+                      "tracks": [
+                        {
+                          "id": "f301a2a1-b40d-40fa-b419-4d0cd92a62f8",
+                          "type": "video",
+                          "width": 1920,
+                          "height": 1080,
+                          "frameRate": "30/1",
+                          "closedCaptions": false
+                        }
+                      ],
+                      "isAudioOnly": false,
+                      "subtitleAvailable": true,
+                      "duration": "00:00:10",
+                      "frameRate": "30/1",
+                      "aspectRatio": "16:9",
+                      "createdAt": "2025-01-09T06:44:44.617138Z",
+                      "updatedAt": "2025-01-09T06:44:53.742648Z"
+                    }
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: media workspace relation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+    delete:
+      security:
+       - BasicAuth: []
+      tags:
+        - Manage videos
+      summary: Delete a media by ID
+      operationId: delete-media
+      description: |
+        This endpoint allows you to permanently delete a a specific video or audio media file along with all associated data. If you wish to remove a media file from FastPix storage, use this endpoint with the **mediaId** (either **uploadId** or **id**) received during the media's creation or upload. 
+
+
+        #### How it works
+ 
+
+        1. Make a DELETE request to the **/on-demand/`<mediaId>`**  endpoint, replacing `<mediaId>` with the uploadId or the id of the media you want to delete. 
+        
+        2. Confirm the deletion: Since this action is irreversible, ensure that you no longer need the media before proceeding. Once deleted, the media cannot be retrieved or played back. 
+        
+        3. Webhook event to look for: **video.media.deleted** 
+        
+        **Use case:** A user on a video-sharing platform decides to remove an old video from their profile, or suppose you're running a content moderation system, and one of the videos uploaded by a user violates your platform’s policies. Using this endpoint, the media is permanently deleted from your library, ensuring it’s no longer accessible or viewable by other users. 
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 4fa85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+      responses:
+        '200':
+          description: Delete a video media
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    enum:
+                      - true
+                      - false
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                example:
+                  {
+                    "success": true
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '404':
+          description: media workspace relation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  
+  /on-demand/{mediaId}/summary:
+    patch:
+      security:
+        - BasicAuth: []
+      tags:
+        - In-video AI features
+      summary: Generate video summary
+      description: |
+        This endpoint allows you to generate the summary for an existing media.
+        
+        #### How it works
+        1. Send a PATCH request to the **/on-demand/{mediaId}/summary** endpoint, replacing `<mediaId>` with the unique ID of the media for which you wish to generate a summary.
+        2. Include the required `generate` parameter in the request body for summary generation.
+        3. Include the `summaryLength` parameter, specify the desired length of the summary in words (e.g., 120 words), this determines how concise or detailed the summary will be. If no specific summary length is provided, the default length will be 100 words. 
+        4. The response will include the updated media data and confirmation of the changes applied.
+      
+        You can utilize the **video.mediaAI.summary.ready** webhook event to track and notify about the summary generation.
+
+        **Use case:** This is particularly useful when a user uploads a video and later chooses to generate a summary without needing to re-upload the video.
+
+
+      operationId: update-media-summary
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "4fa85f64-5717-4562-b3fc-2c963f66afa6"
+          description: |
+            The unique identifier assigned to the media when created. The value should be a valid UUID.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                generate:
+                  type: boolean
+                  enum: [true, false]
+                  example: true
+                  description: |
+                    Enable or disable the summary feature for the media. Set to true to enable summary or false to disable.
+                summaryLength:
+                  type: integer
+                  example: 100
+                  default: 100
+                  maximum: 250
+                  minimum: 30
+                  description: |
+                    Specifies the desired word count for the generated summary. 
+                    - The value must be between **30** and **250** words.
+              required:
+                - generate
+              example:
+                {
+                  "generate":true,
+                  "summaryLength": 100,
+                }
+      responses:
+        '200':
+          description: Media details updated successfully with the generated summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: Indicates if the request was successful or not.
+                  data:
+                    $ref: '#/components/schemas/SummaryResponse'
+                example: 
+                  {
+                    "success": true,
+                    "data": {
+                      "mediaId":"c695988b-ff84-42ae-bb21-10f284fedb0e",
+                      "isSummaryEnabled":true
+                    }
+                  }
+        '401':
+          description: Unauthorized - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden - User does not have permission to update the media
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '422':
+          description: Unprocessable Entity - Payload validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Media not found - Invalid media ID or media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+                
+                
+  /on-demand/{mediaId}/chapters:
+    patch:
+      security:
+        - BasicAuth: []
+      tags:
+        - In-video AI features
+      summary: Generate video chapters
+      description: |
+        This endpoint enables you to generate chapters for an existing media file.
+
+        #### How it works
+        1. Make a PATCH request to the **/on-demand/{mediaId}/chapters** endpoint, replacing `<mediaId>` with the ID of the media for which you want to generate chapters.
+        2. Include the `chapters` parameter in the request body to enable.
+        3. The response will contain the updated media data, confirming the changes made.
+  
+        You can utilize the **video.mediaAI.chapters.ready** webhook event to track and notify about the chapters generation.
+  
+        **Use case:** This is particularly useful when a user uploads a video and later decides to enable chapters without re-uploading the entire video.
+
+      operationId: update-media-chapters
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "4fa85f64-5717-4562-b3fc-2c963f66afa6"
+          description: |
+            The unique identifier assigned to the media when created. The value should be a valid UUID.
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chapters:
+                  type: boolean
+                  example: true
+                  description: |
+                    Enable or disable the chapters feature for the media. Set to `true` to enable chapters or `false` to disable.
+              required:
+                - chapters
+              example:
+                {
+                  "chapters": true
+                }
+
+      responses:
+        '200':
+          description: Media details updated successfully with the chapters feature enabled or disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: Indicates if the request was successful or not.
+                  data:
+                    $ref: '#/components/schemas/ChaptersResponse'
+                example: 
+                  {
+                    "success": true,
+                    "data": {
+                      "mediaId":"c695988b-ff84-42ae-bb21-10f284fedb0e",
+                      "isChaptersEnabled":true
+                    }
+                  }
+
+        '401':
+          description: Unauthorized - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+  
+        '403':
+          description: Forbidden - User does not have permission to update the media
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+  
+        '422':
+          description: Unprocessable Entity - Payload validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  
+        '404':
+          description: Media not found - Invalid media ID or media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+         
+  /on-demand/{mediaId}/named-entities:
+    patch:
+      security:
+        - BasicAuth: []
+      tags:
+        - In-video AI features
+      summary: Generate named entities
+      description: |
+        This endpoint allows you to extract named entities from an existing media.
+        Named Entity Recognition (NER) is a fundamental natural language processing (NLP) technique that identifies and classifies key information (entities) in text into predefined categories. For instance:
+        
+          - Organizations (e.g., "Microsoft", "United Nations")
+          - Locations (e.g., "Paris", "Mount Everest")
+          - Product names (e.g., "iPhone", "Coca-Cola")
+  
+        #### How it works
+        1. Make a PATCH request to the **/on-demand/{mediaId}/named-entities** endpoint, replacing `<mediaId>` with the ID of the media you want to extract named-entities.
+        2. Include the `namedEntities` parameter in the request body to enable.
+        3. Receive a response containing the updated media data, confirming the changes made.
+  
+        You can utilise the **video.mediaAI.named-entities.ready** webhook event to track and notify about the named entities extraction.
+  
+        **Use case:** If a user uploads a video and later decides to enable named entity extraction without re-uploading the entire video.
+
+      operationId: update-media-named-entities
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "0cec3c88-c69d-4232-9b96-f0976327fa2d"
+          description: |
+            The unique identifier assigned to the media when created. The value should be a valid UUID.
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                namedEntities:
+                  type: boolean
+                  example: true
+                  description: |
+                    Enable or disable named entity extraction. Set to `true` to enable or `false` to disable.
+              required:
+                - namedEntities
+              example:
+                {
+                  "namedEntities": true
+                }
+
+      responses:
+        '200':
+          description: Media details updated successfully with the named entity extraction feature enabled or disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: Indicates if the request was successful or not.
+                  data:
+                    $ref: '#/components/schemas/NamedEntitiesResponse'
+                example: 
+                  {
+                    "success": true,
+                    "data": {
+                      "mediaId":"c695988b-ff84-42ae-bb21-10f284fedb0e",
+                      "isNamedEntitiesEnabled":true
+                    }
+                  }
+
+        '401':
+          description: Unauthorized - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+  
+        '403':
+          description: Forbidden - User does not have permission to update the media
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+  
+        '422':
+          description: Unprocessable Entity - Payload validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  
+        '404':
+          description: Media not found - Invalid media ID or media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+  /on-demand/{mediaId}/moderation:
+    patch:
+      security:
+        - BasicAuth: []
+      tags:
+        - In-video AI features
+      summary: Enable video moderation
+      description: |
+        This endpoint enables moderation features, such as NSFW and profanity filtering, to detect inappropriate content in existing media
+  
+        #### How it works
+        1. Make a PATCH request to the **/on-demand/{mediaId}/moderation** endpoint, replacing `<mediaId>` with the ID of the media you want to update.
+        2. Include the `moderation` object and provide the requried `type` parameter in the request body to specify the media type (e.g., video/audio/av).
+        4. The response will contain the updated media data, confirming the changes made.
+        
+        You can utilize the **video.mediaAI.moderation.ready** webhook event to track and notify about the detected moderation results.
+  
+        **Use case:** This is particularly useful when a user uploads a video and later decides to enable moderation detection without the need to re-upload it.
+
+      operationId: update-media-moderation
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "0cec3c88-c69d-4232-9b96-f0976327fa2d"
+          description: |
+            The unique identifier assigned to the media when created. The value should be a valid UUID.
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                moderation:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      example: video
+                      enum: 
+                        - "video" 
+                        - "audio" 
+                        - "av" 
+                      description: >
+                       Defines the type of input. Possible values include video, audio, av.
+              example:
+                {
+                  "moderation":{
+                    "type":"video"
+                  }
+                }
+
+      responses:
+        '200':
+          description: Media details updated successfully with the named entity extraction feature enabled or disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: Indicates if the request was successful or not.
+                  data:
+                    $ref: '#/components/schemas/ModerationResponse'
+                example: 
+                  {
+                    "success": true,
+                    "data": {
+                      "mediaId":"c695988b-ff84-42ae-bb21-10f284fedb0e",
+                      "isModerationEnabled":true
+                    }
+                  }
+
+        '401':
+          description: Unauthorized - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+  
+        '403':
+          description: Forbidden - User does not have permission to update the media
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+  
+        '422':
+          description: Unprocessable Entity - Payload validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  
+        '404':
+          description: Media not found - Invalid media ID or media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+
+                
+  /on-demand/{mediaId}/source-access:
+    patch:
+      security:
+        - BasicAuth: []
+      tags:
+        - Manage videos
+      summary: Update the source access of a media by ID
+      description: |
+        This endpoint allows you to update the `sourceAccess` setting of an existing media file. The `sourceAccess` parameter determines whether the original media file is accessible or restricted. Setting this to `true` enables access to the media source, while setting it to `false` restricts access. 
+  
+        #### How it works
+  
+        1. Make a PATCH request to the **/on-demand/{mediaId}/source-access** endpoint, replacing `{mediaId}` with the ID of the media you want to update.
+        
+        2. Include the updated `sourceAccess` parameter in the request body.
+        
+        3. Receive a response confirming the update to the media's source access status.
+  
+        Once the update request is made, you can also monitor the **video.media.source.ready/video.media.source.deleted** webhook event to notify your system about the update status.
+  
+        **Use case:** The sourceAccess parameter allows you to control access to the original media file" is that it gives you flexibility and security in managing media content. By controlling access to the original file.
+      operationId: updated-source-access
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 4fa85f64-5717-4562-b3fc-2c963f66afa6
+          description: >
+            When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sourceAccess:
+                  type: boolean
+                  example: true
+                  enum: 
+                    - true 
+                    - false 
+                  description: >-
+                    The sourceAccess parameter determines whether the original media file is accessible. Set to true to enable access or false to restrict it.
+              example:
+                {
+                  "sourceAccess": true
+                }
+      responses:
+        '200':
+          description: Media details updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >-
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    $ref: '#/components/schemas/Media'
+                example:
+                  {
+                    "success": true,
+                    "data": {
+                      "thumbnail": "https://venus-images.fastpix.dev/cf41c9f7-ece3-4efe-8d31-c6e000dc422b/thumbnail.png",
+                      "id": "eb56a668-0354-40c2-9233-f3197e1baabd",
+                      "workspaceId": "c788be40-91a5-4d2d-abf7-47398a6276a1",
+                      "metadata": {
+                        "key1": "value1"
+                      },
+                      "maxResolution": "1080p",
+                      "sourceResolution": "1080p",
+                      "status": "ready",
+                      "sourceAccess": true,
+                      "playbackIds": [
+                        {
+                          "id": "cf41c9f7-ece3-4efe-8d31-c6e000dc422b",
+                          "accessPolicy": "public",
+                          "accessRestrictions": {
+                            "domains": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            },
+                            "userAgents": {
+                              "defaultPolicy": "allow",
+                              "allow": [],
+                              "deny": []
+                            }
+                          }
+                        }
+                      ],
+                      "tracks": [
+                        {
+                          "id": "344fd5bc-82af-4d11-bc1c-785d9e6f9aef",
+                          "type": "video",
+                          "width": 1920,
+                          "height": 1080,
+                          "frameRate": "30/1",
+                          "closedCaptions": false
+                        }
+                      ],
+                      "isAudioOnly": false,
+                      "subtitleAvailable": true,
+                      "duration": "00:00:10",
+                      "frameRate": "30/1",
+                      "aspectRatio": "16:9",
+                      "createdAt": "2024-12-06T03:47:26.489888Z",
+                      "updatedAt": "2024-12-06T03:47:47.593400Z"
+                    }
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Media workspace relation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+
+        
+  /on-demand/{mediaId}/input-info:
+    get:
+      security:
+        - BasicAuth: []
+      tags:
+        - Manage videos
+      summary: Get info of media inputs
+      operationId: retrieveMediaInputInfo
+      description: |
+        Allows you to retrieve detailed information about the media inputs associated with a specific media item. You can use this endpoint to verify the media file’s input URL, track creation status, and container format. The mediaId (either uploadId or id) must be provided to fetch the information. 
+ 
+
+        #### How it works
+
+ 
+
+        Upon making a GET request with the mediaId, FastPix returns a response that includes: 
+
+        * **Input-url:** The URL of the uploaded media file. 
+        
+        * **tracks:** Information about the tracks associated with the media, including both video and audio tracks, indicating whether they have been successfully created. 
+        
+        * **containerFormat:** The format of the uploaded media file container (e.g., MP4, MKV). 
+        
+         
+        
+        This endpoint is particularly useful for ensuring that all necessary tracks (video and audio) have been correctly associated with the media during the upload or media creation process. 
+
+      parameters:
+        - in: path
+          name: mediaId
+          description: >-
+            Pass the list of the input objects used to create the media, along with applied settings.
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 4fa85f64-5717-4562-b3fc-2c963f66afa6
+      responses:
+        '200':
+          description: Get video media input information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    description: Displays the result of the request.
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        configuration:
+                          type: object
+                          description: >-
+                            Represents a collection of configuration details. Each object provides specific information about a particular configuration.
+                          properties:
+                            url:
+                              type: string
+                              example: https://static.fastpix.io/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4
+                              description: >-
+                                The url hosts the media file for FastPix, which needs to be download to use further.  It supports formats like MP3, MP4, MOV, MKV, or TS, and includes text tracks for subtitles/CC (SRT file). While FastPix can handle various audio and video formats and codecs, using standard inputs can help with optimal processing speed.
+                        file:
+                          type: object
+                          description: >-
+                            Contains metadata and structural details about the media file, including its container format and individual tracks.
+                          properties:
+                            containerFormat:
+                              type: string
+                              example: mp4
+                              description: >-
+                                Holds different types of multimedia data in a single file. 
+                            tracks:
+                              type: array
+                              description: >-
+                                Represents the individual tracks within the media, such as video, audio, and text.
+                              items:
+                                $ref: '#/components/schemas/Track'
+                example:
+                    {
+                      "success": true,
+                      "data": {
+                        "configuration": {
+                          "url": "https://static.fastpix.io/sample.mp4"
+                        },
+                        "file": {
+                          "containerFormat": "mp4",
+                          "tracks": [
+                              {
+                                "id": "00dad16c-555c-454a-b552-38d1ac5a26b3",
+                                "type": "audio",
+                                "closedCaptions": false
+                              },
+                              {
+                                "id": "6eb56a83-9a8b-47a5-94b2-cadb4458cf4d",
+                                "type": "video",
+                                "width": 1280,
+                                "height": 720,
+                                "frameRate": "30/1",
+                                "closedCaptions": false
+                              }
+                            ]
+                        }
+                      }
+                    }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '404':
+          description: Get video media input information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  /on-demand/{mediaId}/playback-ids:
+    post:
+      security:
+        - BasicAuth: []
+      tags:
+        - Playback
+      summary: Create a playback ID
+      description: |
+        You can create a new playback ID for a specific media asset. If you have already retrieved an existing playbackId using the "Get Media by ID" endpoint for a media asset, you can use this endpoint to generate a new playback ID with a specified access policy. 
+
+ 
+
+        If you want to create a private playback ID for a media asset that already has a public playback ID, this endpoint also allows you to do so by specifying the desired access policy. 
+
+        #### How it works
+         
+        1. **Make a POST request** to the **/on-demand/`<mediaId>`/playback-ids** endpoint, replacing `<mediaId>` with the uploadId or id of the media asset. 
+        
+        2. Include the **access policy** in the request body to indicate whether the new playback ID should be private or public. 
+        
+        3. Receive a response containing the newly created playback ID with the requested access level. 
+        
+        
+        **Use case:** A video streaming service generates playback IDs for each media file when users request to view specific content. The playback ID is then used by the video player to stream the video. 
+      operationId: create-media-playback-id
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          description: >-
+            When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+          schema:
+            type: string
+            format: uuid
+            example: dbb8a39a-e4a5-4120-9f22-22f603f1446e
+            description: >-
+              When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+      requestBody:
+        description: Request body for creating playback id for an media
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accessPolicy
+              properties:
+                accessPolicy:
+                  type: string
+                  example: public
+                  enum:
+                    - "public"
+                    - "private"
+                    - "drm"
+                  description: >-
+                    Determines if access to the streamed content is kept private or available to all. 
+                accessRestrictions:
+                  type: object
+                  properties:
+                    domains:
+                      type: object
+                      properties:
+                        defaultPolicy:
+                          type: string
+                          enum: [allow, deny]
+                          description: |
+                            Specifies the default access policy for domains. 
+                            If set to `allow`, all domains are allowed access unless otherwise specified in the `deny` list. 
+                            If set to `deny`, all domains are denied access unless otherwise specified in the `allow` list.
+                        allow:
+                          type: array
+                          items:
+                            type: string
+                          example: 
+                            - example.com
+                            - trustedsite.org
+                          description: |
+                            A list of domain names or patterns that are explicitly allowed access. 
+                            This list is only effective when the `defaultPolicy` is set to `deny`.
+                        deny:
+                          type: array
+                          items:
+                            type: string
+                          example: 
+                            - malicioussite.io
+                            - spamdomain.net
+                          description: |
+                            A list of domain names or patterns that are explicitly denied access. 
+                            This list is only effective when the `defaultPolicy` is set to `allow`.
+                    userAgents:
+                      type: object
+                      properties:
+                        defaultPolicy:
+                          type: string
+                          enum: [allow, deny]
+                          description: |
+                            Specifies the default access policy for user agents (browsers, bots, etc.). 
+                            If set to `allow`, all user agents are allowed access unless otherwise specified in the `deny` list. 
+                            If set to `deny`, all user agents are denied access unless otherwise specified in the `allow` list.
+                        allow:
+                          type: array
+                          items:
+                            type: string
+                          example: 
+                            - Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36
+                            - curl/7.68.0
+                          description: |
+                            A list of user agents (identified by string names or patterns) that are explicitly allowed access. 
+                            This list is only effective when the `defaultPolicy` is set to `deny`.
+                        deny:
+                          type: array
+                          items:
+                            type: string
+                          example: 
+                            - Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36
+                            - PostmanRuntime/7.29.0
+                          description: |
+                            A list of user agents (identified by string names or patterns) that are explicitly denied access. 
+                            This list is only effective when the `defaultPolicy` is set to `allow`.
+
+              example:
+                {
+                  "accessPolicy": "public"
+                }
+      responses:
+        '201':
+          description: Playback id for an media
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    description: Displays the result of the request.
+                    type: object
+                    properties:
+                      playbackIds:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PlaybackId'
+                        description: >-
+                          A collection of Playback ID objects utilized for crafting HLS playback URLs.
+                      
+                example: 
+                  {
+                    "success": true,
+                    "data": {
+                      "id": "b331e0d8-bef4-4ad2-8760-757fdb2818b7",
+                      "accessPolicy": "public",
+                      "accessRestrictions": {
+                        "domains": {
+                          "defaultPolicy": "allow",
+                          "allow": [],
+                          "deny": []
+                        },
+                        "userAgents": {
+                          "defaultPolicy": "allow",
+                          "allow": [],
+                          "deny": []
+                        }
+                      }
+                    }
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '404':
+          description: media workspace relation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaNotFound'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+    delete:
+      security:
+        - BasicAuth: []
+      tags:
+        - Playback
+      summary: Delete a playback ID
+      description: |
+        This endpoint allows you to remove a specific playback ID associated with a media asset. Deleting a playbackId will revoke access to the media content linked to that ID. 
+
+
+        #### How it works
+        
+        1. Make a DELETE request to the **/on-demand/`<mediaId>`/playback-ids** endpoint, replacing `<mediaId>` with the uploadId or id of the media asset from which you want to delete the playback ID. 
+        
+        2. Specify the playback ID you wish to delete in the request body. 
+        
+        **Use case:** Your platform offers limited-time access to premium content. When the subscription expires, you can revoke access to the content by deleting the associated playback ID, preventing users from streaming the video further. 
+
+      operationId: delete-media-playback-id
+      parameters:
+        - in: path
+          name: mediaId
+          description: >-
+            Return the universal unique identifier for media which can contain a maximum of 255 characters. 
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: dbb8a39a-e4a5-4120-9f22-22f603f1446e
+            description: >-
+              When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+        
+        - in: query
+          name: playbackId
+          description: >-
+            Return the universal unique identifier for playbacks  which can contain a maximum of 255 characters. 
+            
+          required: true
+          schema:
+            type: string
+            example: dbb8a39a-e4a5-4120-9f22-22f603f1446e
+            format: uuid
+            description: >-
+              when creating the plyabackIds, FastPix assigns a universal unique identifier with a maximum of 255 characters.
+      responses:
+        '200':
+          description: Deleted a Playback Id successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                example:
+                  {
+                    "success": true
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '404':
+          description: Media/PlaybackId not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaOrPlaybackNotFound'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+    
+  /on-demand/uploads:
+    post:
+      security:
+        - BasicAuth: []
+      tags:
+        - Input video
+      summary: Upload media from device
+      operationId: direct-upload-video-media
+      description: |
+        This endpoint enables you to upload a video file directly from your local device to FastPix for processing, storage. When you invoke this API with your preferred media settings, the response returns an uploadId and a pre-signed URL, providing a streamlined experience for uploading.
+
+ 
+
+        #### How it works
+        
+        1. Send a POST request to the /on-demand/uploads endpoint with optional media settings.  
+        
+        2. The response includes an **uploadId** and a pre-signed URL for direct video file upload.
+        
+        3. Upload your video file to the provided **URL** by making **PUT** request. The API accepts the media file from the device and uploads it to the FastPix platform. 
+
+        4. Once uploaded, the media undergoes processing and is assigned a unique ID for tracking. Retain this **uploadId** for any future operations related to this upload. 
+
+ 
+        
+      
+        After uploading, you can use the **Get Media by ID** endpoint to check the status of the uploaded media asset and see if it has transitioned to a "ready" status for playback. 
+        
+        To notify your application about the status of this API request check for the webhooks for Upload related events.  
+        
+         
+        #### Use case scenario 
+        
+        **Use case:** A social media platform allows users to upload video content directly from their phones or computers. This endpoint facilitates the upload process. For example, if you are developing a video-sharing app where users can upload short clips from their mobile devices, this endpoint enables them to select a video, upload it to the platform.
+      requestBody:
+        description: Request body for direct upload
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - corsOrigin
+              properties:
+                corsOrigin:
+                  type: string
+                  example: '*'
+                  description: >-
+                    Upload media directly from a device using the URL name or enter '*' to allow all.
+                pushMediaSettings:
+                  title: Push Media Settings
+                  type: object
+                  required:
+                    - accessPolicy
+                  description: "Configuration settings for media upload."
+                  properties:
+                    accessPolicy:
+                      type: string
+                      example: public
+                      enum:
+                        - public
+                        - private
+                      description: >-
+                        Determines if access to the streamed content is kept private or available to all.
+                    startTime:
+                      type: number
+                      example: "0"
+                      description: >-
+                        Start time indicates where encoding should begin within the video file, in seconds.
+                    endTime:
+                      type: number
+                      example: "60"
+                      description: >-
+                        End time indicates where encoding should end within the video file, in seconds.
+                    inputs:
+                      type: array
+                      items:
+                        anyOf:
+                          - $ref: '#/components/schemas/VideoInput'
+                          - $ref: '#/components/schemas/WatermarkInput'
+                          - $ref: '#/components/schemas/AudioInput'
+                    metadata:
+                      type: object
+                      example: {"key1" : "value1"}
+                      description: >-
+                        Tag a video in "key" : "value" pairs for searchable metadata. Maximum 10 entries, 255 characters each.
+                    subtitles: 
+                      type: object
+                      description: >
+                        Generates subtitle files for audio/video files.
+                      properties:
+                        name:
+                          type: string
+                          example: "english"
+                          description: Name of the language for the subtitles.
+                        metadata:
+                          type: object
+                          example: {"key1" : "value1"}
+                          description: >-
+                            Searchable metadata tags for the video in key-value pairs.
+                        languageCode:
+                          type: string
+                          example: en
+                          enum: 
+                            - en 
+                            - it 
+                            - pl 
+                            - es 
+                            - fr
+                            - ru 
+                            - nl
+                          description: >
+                            Language codes (BCP 47 compliant) used for text files.
+                    optimizeAudio:
+                      type: boolean
+                      default: true
+                      example: true
+                      enum: 
+                        - true 
+                        - false 
+                      description: >
+                        Enhance the quality and volume of the audio track. This is available for pre-recorded content only.
+                    maxResolution:
+                      type: string
+                      example: 1080p
+                      default: 1080p
+                      enum: 
+                        - "2160p" 
+                        - "1440p" 
+                        - "1080p" 
+                        - "720p" 
+                        - "480p"
+                        - "360p"
+                      description: >
+                        Determines the highest quality resolution available.
+                    sourceAccess:
+                      type: boolean
+                      example: true
+                      enum: 
+                        - true 
+                        - false 
+                      description: >-
+                        The sourceAccess parameter determines whether the original media file is accessible. Set to true to enable access or false to restrict it
+                    mp4Support:
+                      type: string
+                      example: capped_4k
+                      enum: 
+                        - "capped_4k" 
+                        - "audioOnly" 
+                        - "audioOnly,capped_4k" 
+                      description: >
+                        Generates MP4 video up to 4K ("capped_4k"), m4a audio only ("audioOnly"), or both for offline viewing.
+                    summary:
+                      type: object
+                      properties:
+                        generate:
+                          type: boolean
+                          enum: [true, false]
+                          example: true
+                          description: |
+                            Enable or disable the summary feature for the media. Set to true to enable summary or false to disable.
+                        summaryLength:
+                          type: integer
+                          example: 100
+                          default: 100
+                          maximum: 250
+                          minimum: 30
+                          description: |
+                            Specifies the desired word count for the generated summary. 
+                            - The value must be between **30** and **250** words.
+                    chapters:
+                      type: boolean
+                      example: true
+                      description: |
+                        Enable or disable the chapters feature for the media. Set to `true` to enable chapters or `false` to disable.
+                    namedEntities:
+                      type: boolean
+                      example: true
+                      description: |
+                        Enable or disable named entity extraction. Set to `true` to enable or `false` to disable.
+                    moderation:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: video
+                          enum: 
+                            - "video" 
+                            - "audio" 
+                            - "av" 
+                          description: >
+                            Defines the type of input. Possible values include video, audio, av.
+                    accessRestrictions:
+                      type: object
+                      properties:
+                        domains:
+                          type: object
+                          properties:
+                            defaultPolicy:
+                              type: string
+                              enum: [allow, deny]
+                              description: |
+                                Specifies the default access policy for domains. 
+                                If set to `allow`, all domains are allowed access unless otherwise specified in the `deny` list. 
+                                If set to `deny`, all domains are denied access unless otherwise specified in the `allow` list.
+                            allow:
+                              type: array
+                              items:
+                                type: string
+                              example: 
+                                - example.com
+                                - trustedsite.org
+                              description: |
+                                A list of domain names or patterns that are explicitly allowed access. 
+                                This list is only effective when the `defaultPolicy` is set to `deny`.
+                            deny:
+                              type: array
+                              items:
+                                type: string
+                              example: 
+                                - malicioussite.io
+                                - spamdomain.net
+                              description: |
+                                A list of domain names or patterns that are explicitly denied access. 
+                                This list is only effective when the `defaultPolicy` is set to `allow`.
+                        userAgents:
+                          type: object
+                          properties:
+                            defaultPolicy:
+                              type: string
+                              enum: [allow, deny]
+                              description: |
+                                Specifies the default access policy for user agents (browsers, bots, etc.). 
+                                If set to `allow`, all user agents are allowed access unless otherwise specified in the `deny` list. 
+                                If set to `deny`, all user agents are denied access unless otherwise specified in the `allow` list.
+                            allow:
+                              type: array
+                              items:
+                                type: string
+                              example: 
+                                - Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36
+                                - curl/7.68.0
+                              description: |
+                                A list of user agents (identified by string names or patterns) that are explicitly allowed access. 
+                                This list is only effective when the `defaultPolicy` is set to `deny`.
+                            deny:
+                              type: array
+                              items:
+                                type: string
+                              example: 
+                                - Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36
+                                - PostmanRuntime/7.29.0
+                              description: |
+                                A list of user agents (identified by string names or patterns) that are explicitly denied access. 
+                                This list is only effective when the `defaultPolicy` is set to `allow`.
+              example:
+                {
+                  "corsOrigin": "*",
+                  "pushMediaSettings": {
+                    "metadata": {
+                      "key1": "value1"
+                    },
+                    "accessPolicy": "public",
+                    "maxResolution": "1080p"
+                  }
+                }
+      responses:
+        '201':
+          description: Direct upload created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    $ref: '#/components/schemas/DirectUpload'
+                example: 
+                    {
+                      "success": true,
+                      "data": {
+                        "uploadId": "beff5537-de85-42e1-a673-2a405cd94177",
+                        "trial": false,
+                        "status": "waiting",
+                        "url": "https://storage-iad01.fastpix.io/uploads/6dc2b4e0-0615-42fd-a580-1f4aad932dfe/beff5537-de85-42e1-a673-2a405cd94177?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=on-demand-svc%2F20250109%2Fiad01%2Fs3%2Faws4_request&X-Amz-Date=20250109T070118Z&X-Amz-Expires=14400&X-Amz-SignedHeaders=host&X-Amz-Signature=473db87247ff580cc4df12de6ab81a83665074abde9effc07b8a87f0d71e8d51",
+                        "timeout": 14400,
+                        "corsOrigin": "*",
+                        "pushMediaSettings": {
+                          "playbackIds": [
+                            {
+                              "accessPolicy": "public",
+                              "accessRestrictions": {
+                                "domains": {
+                                  "defaultPolicy": "allow",
+                                  "allow": [],
+                                  "deny": []
+                                },
+                                "userAgents": {
+                                  "defaultPolicy": "allow",
+                                  "allow": [],
+                                  "deny": []
+                                }
+                              }
+                            }
+                          ],
+                          "metadata": {
+                            "key1": "value1"
+                          }
+                        }
+                      }
+                    }
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequest'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+        '422':
+          description: Payload Validation Failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+    get:
+      security:
+        - BasicAuth: [] 
+      tags:
+        - Manage videos
+      summary: Get all unused upload URLs
+      description: |
+       This endpoint retrieves a paginated list of all unused upload signed URLs within your organization. It provides comprehensive metadata including upload IDs, creation dates, status, and URLs, helping you manage your media resources efficiently.
+       
+       An unused upload URL is a signed URL that gets generated when an user initiates upload but never completed the upload process. This can happen due to reasons like network issues, manual cancellation of upload, browser/app crashes or session timeouts.These URLs remain in the system as "unused" since they were created but never resulted in a successful media file upload.
+
+ 
+        #### How it works
+   
+        - The endpoint returns metadata for all unused upload URLs in your organization's library.
+        - Results are paginated to manage large datasets effectively.
+        - Signed URLs expire after 24 hours from creation.
+        - Each entry includes full metadata about the unused upload.
+
+ 
+
+        #### Use case scenario 
+      
+        * **Use case:** A video management team for a media organization regularly uploads content to their system but often forgets to delete or utilize unused uploads. These unused uploads, which have signed URLs that expire after 24 hours, need to be managed efficiently. By using this API, they can retrieve metadata for all unused uploads, identify expired signed URLs, and decide whether to regenerate URLs, reuse the uploads, or delete them.
+        
+         
+        
+        * **Detailed example:** 
+        Imagine you’re managing a streaming platform with frequent uploads of video content. Over time, some uploads remain unused, resulting in clutter in the media library. To address this, you decide to fetch a list of all unused uploads in your organization using this API. 
+      operationId: list-uploads
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 10
+            minimum: 1
+            maximum: 50
+            example: 20
+          description: >-
+            Limit specifies the maximum number of items to display per page.
+        - in: query
+          name: offset
+          schema:
+            type: number
+            default: 1
+            example: 1
+          description: >- 
+            Offset determines the starting point for data retrieval within a paginated list.
+        - in: query
+          name: orderBy
+          schema:
+            type: string
+            example: "desc"
+            default: "desc" 
+            enum:         
+              - "asc"
+              - "desc"
+          description: >-
+            The values in the list can be arranged in two ways: DESC (Descending) or ASC (Ascending).
+      responses:
+        '200':
+          description: List of video media
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                    description: >- 
+                      Demonstrates whether the request is successful or not.
+                  data:
+                    description: Displays the result of the request.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DirectUpload'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                example:
+                  {
+                    "success": true,
+                    "data": [
+                              {
+                                "uploadId": "9149264c-6cb9-40d3-9313-95a85c56135e",
+                                "trial": true,
+                                "status": "waiting",
+                                "url": "https://storage.fastpix.net/uploads/7619ee69-d758-4589-80ee-965f6bfc922c/9149264c-6cb9-40d3-9313-95a85c56135e?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=assets-svc%2F20250109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250109T084749Z&X-Amz-Expires=14400&X-Amz-SignedHeaders=host&X-Amz-Signature=f0a1e3798792543bff7fed64314cc386f56adc1bc1a65f6d4d9c137c6998b6ce",
+                                "timeout": 14400,
+                                "corsOrigin": "*",
+                                "pushMediaSettings": {
+                                  "playbackIds": [
+                                    {
+                                      "accessPolicy": "public",
+                                      "accessRestrictions": {
+                                        "domains": {
+                                          "defaultPolicy": "allow",
+                                          "allow": [],
+                                          "deny": []
+                                        },
+                                        "userAgents": {
+                                          "defaultPolicy": "allow",
+                                          "allow": [],
+                                          "deny": []
+                                        }
+                                      }
+                                    }
+                                  ],
+                                  "metadata": {
+                                    "key1": "value1"
+                                  }
+                                }
+                              }
+                    ],
+                    "pagination": {
+                      "totalRecords": 100,
+                      "currentOffset": 1,
+                      "offsetCount": 10
+                    }
+                  }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidPermission'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forbidden'
+                  
+        '422':
+          description: Get video media payload validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  
+components:
+  securitySchemes:
+    BasicAuth:     # <-- arbitrary name for the security scheme
+      type: http
+      scheme: basic
+      description: >
+        - Username : Access token id
+       
+        - Password : Secret key
+
+  schemas:
+    Media:
+      type: object
+      properties:
+        thumbnail:
+          type: string
+          example: https://images.fastpix.io/6b13fdaf-f9ac-4970-a13b-01ea417e8783/thumbnail.png
+          description: >-
+            A video thumbnail is a still image that acts as the preview image for your video.
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+          
+        workspaceId:
+          type: string
+          format: uuid
+          example: 5ta85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            A unique identifier is generated by FastPix for the workspace.
+          
+        metadata:
+          type: object
+          example: {"key1" : "value1"}
+          description: >-
+           You can search for videos with specific key value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have maximum of 255 characters and upto 10 entries are allowed.
+        maxResolution:
+          type: string
+          example: 1080p
+          default: 1080p
+          enum: 
+            - "2160p" 
+            - "1440p" 
+            - "1080p" 
+            - "720p" 
+            - "480p"
+            - "360p"
+          description: >-
+            The maximum resolution specified by the user for the media.
+            
+        sourceResolution:
+          type: string
+          example: 1080p
+          default: 1080p
+          enum: 
+            - "2160p" 
+            - "1440p" 
+            - "1080p" 
+            - "720p" 
+            - "480p"
+            - "360p"
+          description: >-
+            The actual resolution of the uploaded media. This represents the native quality of the source media.
+            
+        status:
+          type: string
+          example: preparing
+          enum:
+            - "preparing"
+            - "ready"
+            - "failed"
+            - "created"
+          description: >-
+            Determines the media's status, which can be one of the possible values.
+        sourceAccess:
+          type: boolean
+          example: true
+          enum: 
+            - true 
+            - false 
+          description: >-
+            The sourceAccess parameter determines whether the original media file is accessible. Set to true to enable access or false to restrict it
+        playbackIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaybackId'
+          description: >-
+            A collection of Playback ID objects utilized for crafting HLS playback URLs.
+        tracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Track'
+          description: >-
+            A media consists of different media tracks, like video, audio, and sometimes text, all combined.
+        duration:
+          type: number
+          example: 00:00:10
+          description: >-
+            The time span of the media, measured in seconds with a maximum allowable duration of 12 hours per individual media.
+            
+        frameRate:
+          type: string
+          example: 30/1
+          description: >-
+            Frame rate quantifies the speed at which frames are displayed per second. It represents the range of frames available for a specific track. If the frame rate of the input file is indeterminable, it will be indicated by a value of -1.
+            
+        aspectRatio:
+          type: string
+          example: 16:9
+          description: >-
+            The aspect ratio of a video is a value that describes the relative shape of a video based on its width and height.
+            
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-10-20T10:50:34.594302Z
+          description: >-
+            Time the media was created, defined as a localDateTime (UTC Time).
+            
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2023-10-20T10:50:34.594302Z
+          description: >-
+            Time the media was updated, defined as a localDateTime (UTC Time).
+    Track:
+      type: object
+      description: >-
+        A media consists of different media tracks, like video, audio, and sometimes text, all combined.
+      required: 
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 9oa85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            FastPix generates a unique identifier for each track.
+        type:
+          type: string
+          example: 
+            availableValue: video
+            possibleValue: video, audio, text
+          description: >-
+            Defines the type of input. This option is mandatory.
+        width:
+          type: number
+          example: 1920
+          description: >-
+            Track width denotes the range of widths applicable to a specific track. Currently, this setting can be modified only for video tracks
+            
+        height:
+          type: number
+          example: 1080
+          description: >-
+            Track height denotes the range of height applicable to a specific track. Currently, this setting can be modified only for video tracks.
+            
+        frameRate:
+          type: number
+          example: 30/1
+          description: >-
+            Frame rate quantifies the speed at which frames are displayed per second. It represents the range of frames available for a specific track. If the frame rate of the input file is indeterminable, it will be indicated by a value of -1.
+        closedCaptions:
+          type: boolean
+          example: false
+          description: >-
+            Indicates if the track contains closed captions.
+            
+      example:
+        "tracks": [
+                    {
+                      "id": "9oa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "type": "video",
+                      "width": 1920,
+                      "height": 1080,
+                      "frameRate": 30/1,
+                      "closedCaptions": false
+                    }
+                  ]
+    PlaybackId:
+      type: object
+      description: >-
+        A collection of Playback ID objects utilized for crafting HLS playback urls.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 6ta85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            A unique identifier is generated by FastPix for the playbacks.
+        accessPolicy:
+          type: string
+          example: public
+          enum:
+            - public
+            - private
+            - drm
+          description: >-
+            Determines if access to the streamed content is kept private or available to all. 
+        accessRestrictions:
+          type: object
+          description: Controls access based on domains and user agents. Defines a default policy (either "allow" or "deny") and provides lists for explicitly allowed or denied domains and user agents.
+          properties:
+            domains:
+              type: object
+              description: Restrictions based on the originating domain of a request (e.g., whether requests from certain websites should be allowed or blocked).
+              properties:
+                defaultPolicy:
+                  type: string
+                  enum:
+                    - allow
+                    - deny
+                  example: allow
+                  description: This sets the default behavior for domain access (either "allow" or "deny").
+                allow:
+                  type: array
+                  items:
+                    type: string
+                  description: A list of domains that are explicitly allowed access.
+                deny:
+                  type: array
+                  items:
+                    type: string
+                  description: A list of domains that are explicitly blocked from accessing the resource.
+            userAgents:
+              type: object
+              description: Restrictions based on the user agent (which is typically a string sent by browsers or bots identifying themselves).
+              properties:
+                defaultPolicy:
+                  type: string
+                  enum:
+                    - allow
+                    - deny
+                  example: allow
+                  description: This sets the default behavior for user agent access (either "allow" or "deny").
+                allow:
+                  type: array
+                  items:
+                    type: string
+                  description: A list of specific user agents that are allowed to access the resource.
+                deny:
+                  type: array
+                  items:
+                    type: string
+                  description: A list of specific user agents that are blocked.
+            
+    SummaryResponse:
+      properties:
+        mediaId: 
+          type: string
+          format: uuid
+          example: c695988b-ff84-42ae-bb21-10f284fedb0e
+        isGeneratedSummary:
+          type: boolean
+          example: true
+          
+    ChaptersResponse:
+      properties:
+        mediaId: 
+          type: string
+          format: uuid
+          example: c695988b-ff84-42ae-bb21-10f284fedb0e
+        isGeneratedChapters:
+          type: boolean
+          example: true
+          
+    NamedEntitiesResponse:
+      properties:
+        mediaId: 
+          type: string
+          format: uuid
+          example: c695988b-ff84-42ae-bb21-10f284fedb0e
+        isGeneratedNamedEntities:
+          type: boolean
+          example: true
+          
+    ModerationResponse:
+      properties:
+        mediaId: 
+          type: string
+          format: uuid
+          example: c695988b-ff84-42ae-bb21-10f284fedb0e
+        isModerationEnabled:
+          type: boolean
+          example: true
+        
+              
+    CreateMediaRequest:
+      required:
+        - accessPolicy
+        - inputs
+      properties:
+        inputs:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/VideoInput'
+              - $ref: '#/components/schemas/WatermarkInput'
+              - $ref: '#/components/schemas/AudioInput'
+        metadata:
+          type: object
+          example: {"key1" : "value1"}
+          description: >
+            You can search for videos with specific key-value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have a maximum of 255 characters and up to 10 entries are allowed.
+        subtitle: 
+          type: object
+          description: >
+            Generates subtitle files for audio/video files.
+          properties:
+            name:
+              type: string
+              example: "english"
+              description: >
+                Name of the language in which the subtitles will be generated.
+            metadata:
+              type: object
+              example: {"key1" : "value1"}
+              description: >
+                You can search for videos with specific key-value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have a maximum of 255 characters and up to 10 entries are allowed.
+            languageCode:
+              type: string
+              example: en
+              enum: 
+                - en 
+                - it 
+                - pl 
+                - es 
+                - fr
+                - ru 
+                - nl
+              description: >
+                Language codes are concise, standardized symbols that denote languages, utilizing either two or three characters for identification. The language code must be compliant with the BCP 47 standard to ensure compatibility. (for text only).
+        accessPolicy:
+          type: string
+          example: public
+          enum:
+            - public
+            - private
+            - drm
+          description: >
+            Determines whether access to the streamed content is kept private or available to all.
+        mp4Support:
+          type: string
+          example: capped_4k
+          enum: 
+            - "capped_4k" 
+            - "audioOnly"
+            - "audioOnly,capped_4k"
+          description: >
+            “capped_4k": Generates an mp4 video file up to 4k resolution
+            "audioOnly": Generates an m4a audio file of the media file
+            "audioOnly,capped_4k": Generates both video and audio media files for offline viewing
+        sourceAccess:
+          type: boolean
+          example: true
+          enum: 
+            - true 
+            - false 
+          description: >-
+            The sourceAccess parameter determines whether the original media file is accessible. Set to true to enable access or false to restrict it
+        optimizeAudio:
+          type: boolean
+          default: false
+          example: true
+          enum:
+            - true
+            - false
+          description: >
+            normalize volume of the audio track. This is available for pre-recorded content only. 
+        maxResolution:
+          type: string
+          example: 1080p
+          default: 1080p
+          enum: 
+            - "2160p" 
+            - "1440p" 
+            - "1080p" 
+            - "720p" 
+            - "480p"
+            - "360p"
+          description: >
+            The maximum resolution tier determines the highest quality your media will be available in.
+        summary:
+          type: object
+          properties:
+            generate:
+              type: boolean
+              enum: [true, false]
+              example: true
+              description: |
+                Enable or disable the summary feature for the media. Set to true to enable summary or false to disable.
+            summaryLength:
+              type: integer
+              example: 100
+              default: 100
+              maximum: 250
+              minimum: 30
+              description: |
+                Specifies the desired word count for the generated summary. 
+                - The value must be between **30** and **250** words.
+          required:
+            - generate
+        chapters:
+          type: boolean
+          example: true
+          description: |
+            Enable or disable the chapters feature for the media. Set to `true` to enable chapters or `false` to disable.
+        namedEntities:
+          type: boolean
+          example: true
+          description: |
+            Enable or disable named entity extraction. Set to `true` to enable or `false` to disable.
+        moderation:
+          type: object
+          properties:
+            type:
+              type: string
+              example: video
+              enum: 
+                - "video" 
+                - "audio" 
+                - "av" 
+              description: >
+                Defines the type of input. Possible values include video, audio, av.
+          required:
+            - type
+        accessRestrictions:
+          type: object
+          properties:
+            domains:
+              type: object
+              properties:
+                defaultPolicy:
+                  type: string
+                  enum: [allow, deny]
+                  description: |
+                    Specifies the default access policy for domains. 
+                    If set to `allow`, all domains are allowed access unless otherwise specified in the `deny` lists. 
+                    If set to `deny`, all domains are denied access unless otherwise specified in the `allow` lists.
+                allow:
+                  type: array
+                  items:
+                    type: string
+                  description: |
+                    A list of domain names or patterns that are explicitly allowed access. 
+                    This list is only effective when the `defaultPolicy` is set to `deny`.
+                deny:
+                  type: array
+                  items:
+                    type: string
+                  description: |
+                    A list of domain names or patterns that are explicitly denied access. 
+                    This list is only effective when the `defaultPolicy` is set to `allow`.
+            userAgents:
+              type: object
+              properties:
+                defaultPolicy:
+                  type: string
+                  enum: [allow, deny]
+                  description: |
+                    Specifies the default access policy for user agents (browsers, bots, etc.).
+                    If set to `allow`, all user agents are allowed access unless otherwise specified in the `deny` lists. 
+                    If set to `deny`, all user agents are denied access unless otherwise specified in the `allow` lists.
+                allow:
+                  type: array
+                  items:
+                    type: string
+                  description: |
+                    A list of user agents (identified by string names or patterns) that are explicitly allowed access. 
+                    This list is only effective when the `defaultPolicy` is set to `deny`.
+                deny:
+                  type: array
+                  items:
+                    type: string
+                  description: |
+                    A list of user agents (identified by string names or patterns) that are explicitly denied access. 
+                    This list is only effective when the `defaultPolicy` is set to `allow`.
+        
+      example:
+        {
+            "inputs": [
+                {
+                    "type": "video",
+                    "url": "https://static.fastpix.io/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+                    "startTime": 0,
+                    "endTime": 60
+                },
+                {
+                    "type": "watermark",
+                    "url": "https://static.fastpix.io/watermark-4k.png",
+                    "placement": {
+                        "xAlign": "left",
+                        "xMargin": "10%",
+                        "yAlign": "top",
+                        "yMargin": "10%"
+                    }
+                }
+            ],
+            "metadata": {
+                "key1": "value1"
+            },
+            "subtitles": {
+            "name": "name",
+            "metadata": {
+                "key1": "value1"
+            },
+            "languageCode": "en"
+            },
+            "accessPolicy": "public",
+            "mp4Support":"capped_4k",
+            "optimizeAudio": true,
+            "maxResolution": "1080p"
+        }
+        
+    VideoInput:
+      required: 
+        - url
+        - type
+      properties:
+        type:
+          type: string
+          example: video
+          description: >
+            Defines the type of input. This option is mandatory. Possible values are Video, audio, text, and watermark.
+        url:
+          type: string
+          example: https://static.fastpix.io/sample.mp4
+          description: >
+            The url hosts the media file for FastPix, which needs to be downloaded to use further. It supports formats like MP3, MP4, MOV, MKV, or TS, and includes text tracks for subtitles/CC (SRT file). While FastPix can handle various audio and video formats and codecs, using standard inputs can help with optimal processing speed.
+        startTime:
+          type: number
+          example: "0"
+          description: >
+            Start time indicates where encoding should begin within the video file. For example, if you want to encode a segment from 3 minutes (180 seconds) to 6 minutes (360 seconds) in a 10-minute (600 seconds) video, the start time is 3 minutes (180 seconds). Note: Start time is always mentioned in seconds.
+        endTime:
+          type: number
+          example: "60"
+          description: >
+            End time indicates where encoding should end within the video file. For example, if you want to encode a segment from 3 minutes (180 seconds) to 6 minutes (360 seconds) in a 10-minute (600 seconds) video, the end time is 6 minutes (360 seconds). Note: End time is always mentioned in seconds.
+        introUrl:
+          type: string
+          example: https://static.fastpix.io/sample.mp4
+          description: >
+            The url of the intro video which is to be added at the start of the video.
+        outroUrl:
+          type: string
+          example: https://static.fastpix.io/sample.mp4
+          description: >
+            The url of the outro video which is to be added at the end of the video.
+        expungeSegments:
+          type: array
+          description: >
+            The list of the startTime-endTime of the segments to be removed from the actual video.
+          items:
+            type: string
+            example: "4-6"
+          example: 
+            - "4-6"
+            - "15-19"
+        segments:
+          type: array
+          description: >-
+            A list of media segments to be added or processed. Each segment includes details such as the URL of the media file and instructions on where it should be inserted in the final media composition. A segment can either specify an exact timestamp 
+            (`insertAt`) or indicate that it should be added at the end (`insertAtEnd`).
+          items:
+            type: object
+            oneOf:
+              - type: object
+                required:
+                  - url
+                  - insertAt
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: URL of the segment to be added.
+                    example: "https://storage.googleapis.com/gtv-videos-mp4"
+                  insertAt:
+                    type: integer
+                    description: The timestamp at which the segment should be inserted.
+                    example: 2
+              - type: object
+                required:
+                  - url
+                  - insertAtEnd
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: URL of the segment to be added.
+                    example: "https://storage.googleapis.com/gtv-videos-mp4"
+                  insertAtEnd:
+                    type: boolean
+                    description: Flag indicating the segment should be inserted at the end.
+                    example: true
+    WatermarkInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [watermark]
+          description: Type of overlay (currently only supports 'watermark').
+          example: "watermark"
+        url:
+          type: string
+          format: uri
+          description: URL of the watermark image.
+          example: "https://static.fastpix.io/watermark-4k.png"
+        placement:
+          type: object
+          properties:
+            xAlign:
+              type: string
+              enum: [left, center, right]
+              description: Horizontal alignment of the watermark.
+              example: "left"
+            xMargin:
+              type: string
+              description: Horizontal margin from the edge of the video.
+              example: "10%"
+            yAlign:
+              type: string
+              enum: [top, middle, bottom]
+              description: Vertical alignment of the watermark.
+              example: "top"
+            yMargin:
+              type: string
+              description: Vertical margin from the edge of the video.
+              example: "10%"
+        width:
+          type: string
+          description: Width of the watermark in percentage or pixels.
+          example: "25%"
+        height:
+          type: string
+          description: Height of the watermark in percentage or pixels.
+          example: "25%"
+        opacity:
+          type: string
+          description: Opacity of the watermark in percentage.
+          example: "80%"
+    AudioInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [audio]
+          description: Type of overlay (currently only supports 'audio').
+          example: "audio"
+        swapTrackUrl:
+          type: string
+          format: uri
+          description: URL of the audio track to replace the existing audio in the video.
+          example: "https://file-examples.com/storage/fe0e9b723466913cf9611b7/2017/11/file_example_MP3_700KB.mp3"
+        imposeTracks:
+          type: array
+          description: List of additional audio tracks to overlay on the video.
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                format: uri
+                description: URL of the audio track to impose on the video.
+                example: "http://commondatastorage.googleapis.com/codeskulptor-demos/riceracer_assets/fx/engine-2.ogg"
+              startTime:
+                type: integer
+                description: Start time (in seconds) of the imposed audio in the video.
+                example: 0
+              endTime:
+                type: integer
+                description: End time (in seconds) of the imposed audio in the video.
+                example: 5
+              fadeInLevel:
+                type: integer
+                description: Level of fade-in effect (in seconds) at the start of the imposed audio.
+                example: 1
+              fadeOutLevel:
+                type: integer
+                description: Level of fade-out effect (in seconds) at the end of the imposed audio.
+                example: 4
+    CreateMediaResponse:
+      properties:
+        id:
+          type: string
+          example: iyuU4HFxhJg1vMHM2uztnJut1hIJBuNBSzJionwUV7c
+          description: >-
+            The Media is assigned a universal unique identifier, which can contain a maximum of 255 characters.
+        trial:
+          type: boolean
+          default: true
+          example: true
+          enum:
+            - true
+            - false
+          description: >
+            FastPix allows for a free trial. Create as many media files as you like during the trial period. Remember, each clip can only be 10 seconds long and will be deleted after 24 hours. Also, all trial content will have the FastPix logo watermark.
+        status:
+          type: string
+          example: preparing
+          enum:
+            - "preparing"
+            - "ready"
+            - "failed"
+            - "created"
+          description: >-
+            Determines the media's status, which can be one of the possible values.
+
+        createdAt:
+          type: number
+          example: 2023-10-20T10:50:34.594302Z
+          description: >-
+            Time the media was created, defined as a localDateTime (UTC Time).
+            
+        updatedAt:
+          type: number
+          example: 2023-10-20T10:50:34.594302Z
+          description: >-
+            Time the media was updated, defined as a localDateTime (UTC Time).
+          
+        playbackIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaybackId'
+          description: >-
+            A collection of Playback ID objects utilized for crafting HLS playback URLs.
+        metadata:
+          type: object
+          example: {"key1" : "value1"}
+          description: >-
+            You can search for videos with specific key value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have maximum of 255 characters and upto 10 entries are allowed.
+        maxResolution:
+          type: string
+          example: 1080p
+          default: 1080p
+          enum: 
+            - "2160p" 
+            - "1440p" 
+            - "1080p" 
+            - "720p" 
+            - "480p"
+            - "360p"
+          description: >-
+            The maximum resolution tier determines the highest quality your media will be available in.
+    CreateSubtitleRequest:
+      required:
+        - name
+        - metadata
+        - languageCode
+      properties:
+        createSubtitle: 
+          type: object
+          description: >-
+            Generates subtitle files for audio/video files.
+          properties:
+            name:
+              type: string
+              example: "english"
+              description: >-
+                Name of the language in which the subtitles will be generated.
+            metadata:
+              type: object
+              example: {"key1" : "value1"}
+              description: >-
+                You can search for videos with specific key value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have maximum of 255 characters and upto 10 entries are allowed.
+            languageCode:
+              type: string
+              example: 
+                availableValue: en
+                possibleValue: en, it, pl, es, fr, ru, nl
+              description: >-
+                    Language codes are concise, standardized symbols that denote languages, utilizing either two or three characters for identification. The language code must be compliant with the BCP 47 standard to ensure compatibility. (for text only).
+    CreateSubtitleResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+        status:
+          type: string
+          example: 
+            possibleValue: waiting
+          description: >-
+            Determines the media's status, which can be one of the possible values.
+        name:
+          type: string
+          example: "english"
+          description: >-
+            Name of the language in which the subtitles will be generated.
+        metadata:
+          type: object
+          example: {"key1" : "value1"}
+          description: >-
+            You can search for videos with specific key value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have maximum of 255 characters and upto 10 entries are allowed.
+        languageCode:
+          type: string
+          example: 
+            availableValue: en
+            possibleValue: en, it, pl, es, fr, ru, nl
+          description: >-
+                Language codes are concise, standardized symbols that denote languages, utilizing either two or three characters for identification. The language code must be compliant with the BCP 47 standard to ensure compatibility. (for text only).
+      example:
+            {
+              "id": "5ta85f64-5717-4562-b3fc-2c963f66afa6",
+              "status": "preparing",
+              "name": "English",
+              "metadata": {
+                    "key1": "value1"
+              },
+              "languageCode": "en"
+            }
+            
+    DirectUpload:
+      type: object
+      description: Displays the result of the request.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 5ta85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            When creating the upload, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+        mediaId:
+          type: string
+          example: 7ya85f64-5717-4562-b3fc-2c963f66afa6
+          description: >-
+            When creating the media, FastPix assigns a universally unique identifier with a maximum length of 255 characters.
+        status:
+          type: string
+          example: waiting
+          description: >-
+            Determines the media's status, which can be one of the possible values.
+        url:
+          type: string
+          example: 
+            url:
+              https://storage.fastpix.net/uploads/08256f2c-efca-4c4f-8f21-75e40d49f225/80911756-1ce3-485a-a3b4-6653ff0937a1?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=media-svc%2F20240111%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240111T123116Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=419ab443cdc1d4a22cf1b0f8875855590b346058e6d3859f7c1c9da3bb061f91
+          description: >-
+            The url hosts the media file for FastPix, which needs to be download to use further.  It supports formats like MP3, MP4, MOV, MKV, or TS, and includes text tracks for subtitles/CC (SRT file). While FastPix can handle various audio and video formats and codecs, using standard inputs can help with optimal processing speed.
+        timeout:
+          type: number
+          example: 14400
+          default: 14400
+          description: >
+            The duration set for the validity of the upload URL. If the upload isn't completed within this timeframe, it's marked as timed out.
+        corsOrigin:
+          type: string
+          example: '*'
+          description: >-
+            Upload media directly from a device using the url name or enter '*' to allow all.
+        pushMediaSettings:
+          $ref: '#/components/schemas/DirectUploadResponse'
+    OrganizationNotFoundError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+          enum: 
+            - true 
+            - false 
+          description: >-
+            Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: integer
+              example: 404
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: Organization Not Found
+    DirectUploadResponse:
+      properties:
+        playbackIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaybackId'
+        metadata:
+          type: object
+          example: {"key1" : "value1"}
+          description: >-
+            You can search for videos with specific key value pairs using metadata, when you tag a video in "key" : "value" pairs. Dynamic Metadata allows you to define a key that allows any value pair. You can have maximum of 255 characters and upto 10 entries are allowed.
+        
+    BadRequest:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+          description: >-
+             Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: number
+              example: 400
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: Bad Request
+              description: >-
+                A descriptive message providing more details for the error.
+            description:
+              type: string
+              example: trial plan limits reached. Please upgrade plan to continue
+              description: >
+                A detailed explanation of the possible causes for the error.
+      example:
+        {
+          "success": false,
+          "error": {
+            "code": 400,
+            "message": "trial plan limits reached. Please upgrade",
+            "description":"trial plan limits reached. Please upgrade plan to continue"
+          }
+        }
+    MediaNotFound:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: >-
+            Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: number
+              example: 404
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: media workspace relation not found
+              description: >-
+                A descriptive message providing more details for the error.
+            description:
+              type: string
+              example: The requested resource (eg:mediaId) doesn't exist in the workspace
+              description: >
+                A detailed explanation of the possible causes for the error.
+      example: 
+          {
+            "success": false,
+            "error": {
+              "code": 404,
+              "message": "media workspace relation not found",
+              "description":"The requested resource (eg: mediaId) doesn't exist in the workspace"
+            }
+          }
+    InvalidPermission:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: >-
+            Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: integer
+              example: 401
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: unauthorized
+              description: >-
+                A descriptive message providing more details for the error.
+            description:
+              type: string
+              example: This happens because of 1)Miss match between access token and secret key 2)Miss match between access token and workspace 3)No valid Access token provided.
+              description: >
+                A detailed explanation of the possible causes for the error.
+      example:
+        {
+          "success": false,
+          "error": {
+            "code": 401,
+            "message": "unauthorized",
+            "description":"This happens because of 1)Miss match between access token and secret key 2)Miss match between access token and workspace 3)No valid Access token provided."
+          }
+        }
+    Forbidden:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: >-
+            Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: integer
+              example: 403
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: forbidden
+              description: >-
+                A descriptive message providing more details for the error.
+            description:
+              type: string
+              example: The Access token does not have permissions to perform the request. Check access token's permissions. Read more https://docs.fastpix.io/docs/user-roles
+              description: >
+                A detailed explanation of the possible causes for the error.
+      example:
+        {
+          "success": false,
+          "error": {
+            "code": 403,
+            "message": "forbidden",
+            "description":"The Access token does not have permissions to perform the request. Check access token's permissions. Read more https://docs.fastpix.io/docs/user-roles"
+          }
+        }
+    MediaOrPlaybackNotFound:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: >-
+            Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: number
+              example: 404
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: Media/PlaybackId not Found
+              description: >-
+                A descriptive message providing more details for the error.
+      example:
+        {
+          "success": false,
+          "error": {
+            "code": 404,
+            "message": "media/playbackId not Found"
+          }
+        }
+    MediaOrTrackNotFound:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: >-
+            Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: number
+              example: 404
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: Media or Track Not Found
+              description: >-
+                A descriptive message providing more details for the error.
+      example:
+        {
+          "success": false,
+          "error": {
+            "code": 404,
+            "message": "media workspace relation Not Found"
+          }
+        }
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: 
+          description: >- 
+             Demonstrates whether the request is successful or not.
+        error:
+          type: object
+          description: >-
+            Displays details about the reasons behind the request's failure.
+          properties:
+            code:
+              type: integer
+              example: 422
+              description: >-
+                Displays the error code indicating the type of the error.
+            message:
+              type: string
+              example: "payload validation failed"
+              description: >-
+                A descriptive message providing more details for the error.
+            fields:
+             type: array
+             description: >-
+                  It is an collection of objects, where each object contains information about a specific field and a corresponding error message.
+             items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: 'fieldName'
+                    description: >-
+                      Displays the specific field associated with the error.
+                  message:
+                    type: string
+                    example: 'must not be null'
+                    description: >-
+                      A descriptive message providing more details for the error.
+      example: 
+        {
+          "success": false,
+          "error": {
+            "code": 422,
+            "message": "payload validation failed",
+            "fields": [
+              {
+                "field": "fieldName",
+                "message": "must not be null"
+              }
+            ]
+          }
+        }
+    Pagination:
+      type: object
+      description: >-
+        Pagination organizes content into pages for better readability and navigation.
+      properties:
+        totalRecords:
+          type: integer
+          example: 100
+          description: >-
+            It gives the total number of media assets that are accessible overall.
+        currentOffset:
+          type: integer
+          example: 1
+          description: >- 
+            Offset determines the current point for data retrieval within a paginated list. 
+        offsetCount:
+          type: integer
+          example: 10
+          description: >-
+            The offset count is expressed as total records by limit.
+    
+                
+                
+                
+                
+                
+                
